@@ -72,7 +72,6 @@ class Runner(object):
                 }
             )
     
-    # 训练开始前，使用随机动作进行交互，保证buffer数据充足
     def warmup(self):
         obs, info = self.env.reset()
         done = False
@@ -121,7 +120,6 @@ class Runner(object):
             avg_reward += total_reward
         return {'eval_reward': avg_reward / self.eval_round}
 
-    # 使用trainer与环境交互
     def train(self):
         self.warmup()
         obs, info = self.env.reset()

@@ -20,7 +20,7 @@ class PolicyNetContinuous(nn.Module):
         x = F.relu(self.fc1(states))
         x = F.relu(self.fc2(x))
         mu = self.mu(x)
-        std = F.softplus(self.std(x)) # softplus保证标准差为正
+        std = F.softplus(self.std(x)) 
 
         return mu, std
     

@@ -20,7 +20,7 @@ python main.py --env_name 'Ant-v5'
 
 Generate a GIF
 ```
-python render.py --env_name 'Ant-v5' --checkpoint 300000
+python render.py --env_name 'Ant-v5' --load_checkpoint 300000
 ```
 
 ### Results

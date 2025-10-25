@@ -15,33 +15,26 @@ class SACTrainer():
         self.tau = tau
         self.target_entropy = target_entropy
 
-        # 定义策略网络与Q函数网络
         self.actor = PolicyNetContinuous(state_dim, hidden_dim, action_dim, action_bound=action_bound, device=device)
         self.q1 = QValueNetContinuous(state_dim, hidden_dim, action_dim, device=device)
         self.q2 = QValueNetContinuous(state_dim, hidden_dim, action_dim, device=device)
         self.target_q1 = QValueNetContinuous(state_dim, hidden_dim, action_dim, device=device)
         self.target_q2 = QValueNetContinuous(state_dim, hidden_dim, action_dim, device=device)
 
-        # 初始化目标网络的参数
         self.target_q1.load_state_dict(self.q1.state_dict())
         self.target_q2.load_state_dict(self.q2.state_dict())
 
-        # 训练log的alpha会比较稳定
         self.log_alpha = torch.tensor(np.log(0.01), dtype=torch.float).to(device)
         self.log_alpha.requires_grad = True  
 
-        # 优化器
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=actor_lr)
         self.q1_optimizer = torch.optim.Adam(self.q1.parameters(), lr=critic_lr)
         self.q2_optimizer = torch.optim.Adam(self.q2.parameters(), lr=critic_lr)
         self.log_alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=alpha_lr)
 
-        # 经验回放池
         self.buffer = ReplayBuffer(buffer_maxlen)
     
-    # 计算Q网络的时序差分目标值
     def calc_td_target(self, rewards, next_states, dones):
-        # 使用重参数化技巧采样下个动作
         next_actions, log_prob = self.actor.evaluate(next_states)
         entropy = -log_prob
         target_q1 = self.target_q1(next_states, next_actions)
@@ -51,19 +44,16 @@ class SACTrainer():
 
         return td_target
     
-    # 更新目标网络
     def soft_update(self):
         for param, target_param in zip(self.q1.parameters(), self.target_q1.parameters()):
             target_param.data.copy_(target_param.data * (1.0 - self.tau) + param.data * self.tau)
         for param, target_param in zip(self.q2.parameters(), self.target_q2.parameters()):
             target_param.data.copy_(target_param.data * (1.0 - self.tau) + param.data * self.tau)
     
-    # 采取动作
     def take_action(self, state):
         state = torch.tensor([state], dtype=torch.float).to(self.device)
         return self.actor.act(state)[0]
 
-    # 训练智能体
     def update(self, batch_size):
         states, actions, rewards, next_states, dones = self.buffer.sample(batch_size)
         states = torch.tensor(states, dtype=torch.float).to(self.device)
@@ -72,7 +62,6 @@ class SACTrainer():
         next_states = torch.tensor(next_states, dtype=torch.float).to(self.device)
         dones = torch.tensor(dones, dtype=torch.float).view(-1,1).to(self.device)
 
-        # 更新两个Q网络
         td_target = self.calc_td_target(rewards, next_states, dones)
         q1_loss = F.mse_loss(self.q1(states, actions), td_target.detach())
         q2_loss = F.mse_loss(self.q2(states, actions), td_target.detach())
@@ -83,8 +72,6 @@ class SACTrainer():
         self.q1_optimizer.step()
         self.q2_optimizer.step()
         
-        # 更新actor网络
-        # 使用重参数化技巧采样下个动作
         hat_actions, log_prob = self.actor.evaluate(states)
         entropy = -log_prob
         q1_val = self.q1(states, hat_actions)
@@ -94,13 +81,11 @@ class SACTrainer():
         actor_loss.backward()
         self.actor_optimizer.step()
 
-        # 更新alpha参数
         alpha_loss = torch.mean((entropy - self.target_entropy).detach() * torch.exp(self.log_alpha))
         self.log_alpha_optimizer.zero_grad()
         alpha_loss.backward()
         self.log_alpha_optimizer.step()
 
-        # 更新目标网络
         self.soft_update()
 
         train_log = {
@@ -111,12 +96,3 @@ class SACTrainer():
         }
 
         return train_log
-
-
-
-
-        
-
-
-
-

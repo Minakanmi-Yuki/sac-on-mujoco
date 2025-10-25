@@ -49,13 +49,13 @@ def main(args):
 
     runner = Runner(config)
     
-    runner.load(checkpoint=int(2200000))
+    runner.load(checkpoint=all_args.load_checkpoint)
     frames = runner.render()
     frames[0].save(
         f"./gif/{all_args.env_name}_animation.gif",
         save_all=True,
         append_images=frames[1:],
-        duration=50,  # 可根据环境步长调整（如0.01s/步对应100ms）
+        duration=50,  
         loop=0
     )
 
